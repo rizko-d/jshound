@@ -1,7 +1,15 @@
 # 🔍 JSHound
 
-> **Fast Frontend JS Static Reconnaissance & Secret/Endpoint Hunter**  
-> *Zero-dependency Python CLI & Web Dashboard for Offensive Security, Web Application Penetration Testing, and Bug Bounty Reconnaissance.*
+<p align="center">
+  <img src="assets/dashboard_preview.png" alt="JSHound Web Dashboard Preview" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/rizko-d/jshound/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Python-3.8%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.8+">
+  <img src="https://img.shields.io/badge/Architecture-Zero--Dependency-00e676?style=for-the-badge" alt="Zero-Dependency">
+  <img src="https://img.shields.io/badge/OWASP-Top%2010%20(2021)-orange?style=for-the-badge" alt="OWASP Top 10">
+</p>
 
 ---
 
@@ -9,7 +17,7 @@
 
 Modern Single Page Applications (React, Next.js, Vue, Angular, Vite, Webpack) frequently leak sensitive attack surface elements in their client-side bundles. **JSHound** crawls target web applications, discovers referenced JavaScript bundles and dynamic chunks, extracts REST/GraphQL endpoints and hardcoded credentials, and automatically unpacks exposed Source Maps (`.js.map`) to recover original source code.
 
-Now includes an **interactive zero-dependency Dark-Themed Web Dashboard** for visual reconnaissance.
+Equipped with both a zero-dependency **Dark-Themed Web Dashboard** and a powerful **CLI Engine**.
 
 ---
 
@@ -18,7 +26,7 @@ Now includes an **interactive zero-dependency Dark-Themed Web Dashboard** for vi
 * **OWASP Top 10 (2021):**
   * `A01:2021 – Broken Access Control` (Discovers hidden administrative & internal API endpoints).
   * `A05:2021 – Security Misconfiguration` (Exposed `.js.map` source maps & staging environments).
-  * `A07:2021 – Identification and Authentication Failures` (Hardcoded API keys, JWT tokens, AWS credentials).
+  * `A07:2021 – Identification and Authentication Failures` (Hardcoded API keys, JWT tokens, credentials, AWS keys).
 * **MITRE ATT&CK (Enterprise):**
   * `T1596 - Search Open Technical Databases` (Reconnaissance)
   * `T1552 - Unsecured Credentials: Credentials in Files` (Credential Access)
@@ -26,23 +34,25 @@ Now includes an **interactive zero-dependency Dark-Themed Web Dashboard** for vi
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-- **Zero External Dependencies:** Runs on pure standard Python library (`urllib`, `http.server`, `re`, `json`, `argparse`).
-- **Interactive Web UI:** Modern responsive dark dashboard (`#0a0c10`, `#39d0ff`, `#00e676`) with live stats, search tabs, and scan controls.
-- **Deep SPA Chunk Discovery:** Detects standard `<script>` tags as well as dynamic webpack/vite/next.js chunks (`static/chunks/...`).
-- **Source Map Unpacker:** Detects and reconstructs full original project trees from `.js.map` files (`sourcesContent`).
-- **High-Signal Secret Scanning:**
+- **⚡ Zero External Dependencies:** Built entirely with standard Python libraries (`urllib`, `http.server`, `re`, `json`, `argparse`). No heavy frameworks or package installations needed.
+- **🖥️ Sleek Web Recon Dashboard:** Responsive dark aesthetic (`#0a0c10`, `#39d0ff`, `#00e676`) with live stats, search tabs, and scan controls.
+- **🧩 Deep SPA Chunk Discovery:** Detects standard `<script>` tags as well as dynamic webpack/vite/next.js chunks (`static/chunks/...`).
+- **🗺️ Source Map Unpacker:** Automatically detects and reconstructs original source file trees from `.js.map` (`sourcesContent`).
+- **🔑 High-Signal Secret & Credential Scanning:**
+  * Generic Key & Password Assignments (`password = "..."`, `apikey: "..."`, `secret: "..."`)
   * AWS Access Key IDs (`AKIA...`, `ASIA...`)
   * Google API / Firebase Keys (`AIza...`)
   * JSON Web Tokens (`JWT`)
   * Stripe API Keys (`pk_live...`, `pk_test...`)
   * Slack Webhooks & Tokens
   * GitHub Personal Access Tokens
+  * Mailgun, SendGrid, and Square Keys
   * Private Keys & Generic Bearer tokens
-- **Endpoint Wordlist Generator:** Exports deduplicated endpoints for directory bruteforcing (ffuf, gobuster, burp).
-- **Internal / Staging Host Discovery:** Flags `.internal`, `.staging.`, `.dev.`, and RFC1918 private IP ranges (`10.x`, `172.16.x`, `192.168.x`).
-- **Multi-Format Export:** Web visualizer, terminal colored summary, structured `JSON`, plain `endpoints.txt`, and executive `Markdown` reports.
+- **📝 Endpoint Wordlist Generator:** Exports deduplicated endpoints for directory bruteforcing (ffuf, gobuster, burp).
+- **🏢 Internal / Staging Host Discovery:** Flags `.internal`, `.staging.`, `.dev.`, and RFC1918 private IP ranges (`10.x`, `172.16.x`, `192.168.x`).
+- **📊 Multi-Format Export:** Web visualizer, terminal colored summary, structured `JSON`, plain `endpoints.txt`, and executive `Markdown` reports.
 
 ---
 
@@ -105,6 +115,11 @@ output/
         ├── src/config/aws.ts
         └── src/services/api.ts
 ```
+
+---
+
+## 📄 License
+This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
 
 ---
 
