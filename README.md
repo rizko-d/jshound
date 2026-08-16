@@ -1,7 +1,7 @@
 # 🔍 JSHound
 
 <p align="center">
-  <img src="assets/dashboard_preview.png" alt="JSHound Web Dashboard Preview" width="100%">
+  <img src="assets/preview.png?v=2" alt="JSHound Web Dashboard Preview" width="100%">
 </p>
 
 <p align="center">
