@@ -25,8 +25,8 @@ Equipped with both a zero-dependency **Dark-Themed Web Dashboard** and a powerfu
 
 * **OWASP Top 10 (2021):**
   * `A01:2021 – Broken Access Control` (Discovers hidden administrative & internal API endpoints).
-  * `A05:2021 – Security Misconfiguration` (Exposed `.js.map` source maps & staging environments).
-  * `A07:2021 – Identification and Authentication Failures` (Hardcoded API keys, JWT tokens, credentials, AWS keys).
+  * `A05:2021 – Security Misconfiguration` (Exposed `.js.map` source maps, staging environments, cloud storage).
+  * `A07:2021 – Identification and Authentication Failures` (Hardcoded API keys, JWT tokens, AWS/Azure/OCI cloud credentials).
 * **MITRE ATT&CK (Enterprise):**
   * `T1596 - Search Open Technical Databases` (Reconnaissance)
   * `T1552 - Unsecured Credentials: Credentials in Files` (Credential Access)
@@ -40,18 +40,15 @@ Equipped with both a zero-dependency **Dark-Themed Web Dashboard** and a powerfu
 - **🖥️ Sleek Web Recon Dashboard:** Responsive dark aesthetic (`#0a0c10`, `#39d0ff`, `#00e676`) with live stats, search tabs, and scan controls.
 - **🧩 Deep SPA Chunk Discovery:** Detects standard `<script>` tags as well as dynamic webpack/vite/next.js chunks (`static/chunks/...`).
 - **🗺️ Source Map Unpacker:** Automatically detects and reconstructs original source file trees from `.js.map` (`sourcesContent`).
-- **🔑 High-Signal Secret & Credential Scanning:**
-  * Generic Key & Password Assignments (`password = "..."`, `apikey: "..."`, `secret: "..."`)
-  * AWS Access Key IDs (`AKIA...`, `ASIA...`)
-  * Google API / Firebase Keys (`AIza...`)
-  * JSON Web Tokens (`JWT`)
-  * Stripe API Keys (`pk_live...`, `pk_test...`)
-  * Slack Webhooks & Tokens
-  * GitHub Personal Access Tokens
-  * Mailgun, SendGrid, and Square Keys
-  * Private Keys & Generic Bearer tokens
+- **🔑 High-Signal Multi-Cloud Secret & Credential Scanning:**
+  * **AWS:** Access Key IDs (`AKIA...`, `ASIA...`)
+  * **Microsoft Azure:** Storage Account Connection Strings, Shared Access Signature (SAS) tokens (`sig=...`), Tenant / Client IDs (GUID)
+  * **Oracle Cloud (OCI):** OCID identifiers (`ocid1.user...`, `ocid1.tenancy...`, `ocid1.instance...`), OCI Private Keys
+  * **Google Cloud:** Google API / Firebase Keys (`AIza...`)
+  * **Authentication & SaaS:** JWT tokens, Stripe Standard/Live Keys (`pk_live...`), Slack Webhooks, GitHub Tokens (`ghp_...`), Mailgun, SendGrid, and Square Keys
+  * **Generic Heuristics:** Key/Password Assignments (`password = "..."`, `apikey: "..."`, `secret: "..."`), Private RSA/SSH Keys & Generic Bearer tokens
 - **📝 Endpoint Wordlist Generator:** Exports deduplicated endpoints for directory bruteforcing (ffuf, gobuster, burp).
-- **🏢 Internal / Staging Host Discovery:** Flags `.internal`, `.staging.`, `.dev.`, and RFC1918 private IP ranges (`10.x`, `172.16.x`, `192.168.x`).
+- **🏢 Internal / Staging Host Discovery:** Flags `.internal`, `.staging.`, `.dev.`, Azure Blob storage (`*.blob.core.windows.net`), Oracle Cloud endpoints (`*.oraclecloud.com`), and RFC1918 private IP ranges (`10.x`, `172.16.x`, `192.168.x`).
 - **📊 Multi-Format Export:** Web visualizer, terminal colored summary, structured `JSON`, plain `endpoints.txt`, and executive `Markdown` reports.
 
 ---
@@ -94,7 +91,7 @@ options:
   -o OUTPUT_DIR, --output-dir OUTPUT_DIR
                         Directory to save output reports and unpacked source maps (default: ./output)
   --no-sourcemap        Disable automatic sourcemap (.map) detection and unpacking
-  --timeout TIMEOUT     HTTP request timeout in seconds (default: 12)
+  --timeout TIMEOUT     HTTP request timeout in seconds (default: 15)
   -k, --insecure        Allow insecure SSL connections
   -H HEADER, --header HEADER
                         Custom HTTP header (format: 'Key: Value'). Can be repeated.

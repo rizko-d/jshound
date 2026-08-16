@@ -2,10 +2,19 @@ import re
 from typing import Dict, List, Set, Any
 
 class JSAnalyzer:
-    # High-signal regular expressions for Recon & Secret Finding
+    # High-signal regular expressions for Recon & Secret Finding (AWS, Azure, OCI, GCP, Saas)
     PATTERNS = {
+        # --- Multi-Cloud Credentials ---
         "AWS Access Key ID": r'(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])',
+        "Azure Shared Access Signature (SAS) Token": r'(?i)sig=[a-zA-Z0-9%_\-]{40,}',
+        "Azure Storage Account Connection String": r'DefaultEndpointsProtocol=https?;AccountName=[a-z0-9]{3,24};AccountKey=[a-zA-Z0-9+/=]{64,88};',
+        "Azure Tenant / Client ID (GUID)": r'(?i)(?:tenant_?id|client_?id|subscription_?id)\s*[:=]\s*[\'"`]([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})[\'"`]',
+        "Oracle Cloud (OCI) OCID Resource ID": r'ocid1\.[a-z0-9\-]+\.[a-z0-9\-]+(?:\.[a-z0-9\-]+)*\.[a-z0-9]{20,}',
+        "Oracle Cloud (OCI) User/Tenancy OCID": r'ocid1\.(?:user|tenancy|instance|compartment|volume|vcn|subnet|key)\.oc1\.[a-z0-9\-_]*\.[a-z0-9]{20,}',
+        "Oracle Cloud (OCI) Private Key": r'-----BEGIN (?:RSA )?PRIVATE KEY-----[a-zA-Z0-9+/=\s\r\n]+-----END (?:RSA )?PRIVATE KEY-----',
         "Google API Key / Firebase": r'AIza[0-9A-Za-z\\-_]{35}',
+
+        # --- Tokens & API Keys ---
         "JSON Web Token (JWT)": r'ey[A-Za-z0-9_-]{10,}\.ey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}',
         "Stripe Standard / Publishable Key": r'(?:pk|sk)_(?:test|live)_[0-9a-zA-Z]{24,34}',
         "Slack Webhook / Token": r'xox[baprs]-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*|https://hooks\.slack\.(?:com|example\.com)/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+',
@@ -27,7 +36,7 @@ class JSAnalyzer:
     ]
 
     INTERNAL_HOST_REGEX = re.compile(
-        r'https?://(?:[a-zA-Z0-9_\-]+\.)*(?:staging|dev|internal|corp|test|uat|local|admin|sandbox)\.[a-zA-Z0-9_\-\.]+|'
+        r'https?://(?:[a-zA-Z0-9_\-]+\.)*(?:staging|dev|internal|corp|test|uat|local|admin|sandbox|blob\.core\.windows\.net|oraclecloud\.com)\.[a-zA-Z0-9_\-\.]+|'
         r'https?://(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost)(?::\d+)?',
         re.IGNORECASE
     )
@@ -46,7 +55,7 @@ class JSAnalyzer:
         # 1. Scan Secrets
         for sec_name, sec_regex in self.compiled_secrets.items():
             for match in sec_regex.finditer(content):
-                if sec_name == "Generic Secret / API Key Assignment":
+                if sec_name in ["Generic Secret / API Key Assignment", "Azure Tenant / Client ID (GUID)"]:
                     matched_val = match.group(1)
                 else:
                     matched_val = match.group(0)
