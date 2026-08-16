@@ -13,10 +13,11 @@ from jshound.analyzer import JSAnalyzer
 from jshound.sourcemap import SourceMapUnpacker
 from jshound.reporter import Reporter, Colors
 from jshound.web import start_web_server
+from jshound.diff import ScanDiffer
 
 def main():
     parser = argparse.ArgumentParser(
-        description="JSHound - Fast Reconnaissance & Secret/Endpoint Extractor for Frontend JS Bundles",
+        description="JSHound - Advanced Frontend JS Static Reconnaissance, DOM Vulnerability & Multi-Cloud Secret Hunter",
         formatter_class=argparse.RawTextHelpFormatter
     )
     group = parser.add_mutually_exclusive_group(required=False)
@@ -31,6 +32,8 @@ def main():
     parser.add_argument("--timeout", type=int, default=15, help="HTTP request timeout in seconds (default: 15)")
     parser.add_argument("-k", "--insecure", action="store_true", help="Allow insecure SSL connections")
     parser.add_argument("-H", "--header", action="append", help="Custom HTTP header (format: 'Key: Value'). Can be repeated.")
+    parser.add_argument("--entropy", type=float, default=4.5, help="Minimum Shannon entropy threshold for secret heuristic (default: 4.5)")
+    parser.add_argument("--diff", help="Path to historical scan JSON file to perform continuous change diffing")
 
     args = parser.parse_args()
 
@@ -54,7 +57,7 @@ def main():
     reporter.print_banner()
 
     crawler = JSCrawler(timeout=args.timeout, headers=custom_headers if custom_headers else None, verify_ssl=not args.insecure)
-    analyzer = JSAnalyzer()
+    analyzer = JSAnalyzer(min_entropy=args.entropy)
     unpacker = SourceMapUnpacker()
 
     aggregated: Dict[str, Any] = {
@@ -63,7 +66,10 @@ def main():
         "sourcemaps_unpacked": [],
         "secrets": [],
         "endpoints": set(),
-        "internal_hosts": set()
+        "internal_hosts": set(),
+        "dom_vulns": [],
+        "graphql_queries": [],
+        "api_blueprints": []
     }
 
     # 1. ONLINE MODE
@@ -92,6 +98,9 @@ def main():
                 aggregated["secrets"].append(s)
             aggregated["endpoints"].update(html_scan["endpoints"])
             aggregated["internal_hosts"].update(html_scan["internal_hosts"])
+            aggregated["dom_vulns"].extend(html_scan["dom_vulns"])
+            aggregated["graphql_queries"].extend(html_scan["graphql_queries"])
+            aggregated["api_blueprints"].extend(html_scan["api_blueprints"])
 
         print(f"{Colors.GREEN}[+] Found {len(js_urls)} JavaScript files/chunks.{Colors.ENDC}")
 
@@ -110,6 +119,9 @@ def main():
                 aggregated["secrets"].append(s)
             aggregated["endpoints"].update(scan_res["endpoints"])
             aggregated["internal_hosts"].update(scan_res["internal_hosts"])
+            aggregated["dom_vulns"].extend(scan_res["dom_vulns"])
+            aggregated["graphql_queries"].extend(scan_res["graphql_queries"])
+            aggregated["api_blueprints"].extend(scan_res["api_blueprints"])
 
             # Sourcemap detection & unpacking
             if not args.no_sourcemap:
@@ -138,6 +150,9 @@ def main():
                                             aggregated["secrets"].append(s)
                                         aggregated["endpoints"].update(src_scan["endpoints"])
                                         aggregated["internal_hosts"].update(src_scan["internal_hosts"])
+                                        aggregated["dom_vulns"].extend(src_scan["dom_vulns"])
+                                        aggregated["graphql_queries"].extend(src_scan["graphql_queries"])
+                                        aggregated["api_blueprints"].extend(src_scan["api_blueprints"])
                                 except Exception:
                                     pass
 
@@ -168,6 +183,9 @@ def main():
                         aggregated["secrets"].append(s)
                     aggregated["endpoints"].update(scan_res["endpoints"])
                     aggregated["internal_hosts"].update(scan_res["internal_hosts"])
+                    aggregated["dom_vulns"].extend(scan_res["dom_vulns"])
+                    aggregated["graphql_queries"].extend(scan_res["graphql_queries"])
+                    aggregated["api_blueprints"].extend(scan_res["api_blueprints"])
             except Exception as e:
                 print(f"    {Colors.FAIL}[-] Error reading {fpath}: {e}{Colors.ENDC}")
 
@@ -177,14 +195,16 @@ def main():
 
     # Output reports
     reporter.print_summary_terminal(aggregated)
+    reporter.export_all(aggregated, args.output_dir)
 
-    json_path = os.path.join(args.output_dir, "jshound_results.json")
-    endpoints_path = os.path.join(args.output_dir, "endpoints.txt")
-    markdown_path = os.path.join(args.output_dir, "recon_report.md")
-
-    reporter.export_json(aggregated, json_path)
-    reporter.export_endpoints_txt(aggregated["endpoints"], endpoints_path)
-    reporter.export_markdown_report(aggregated, markdown_path)
+    # Feature 6: Diff Mode Execution
+    if args.diff:
+        try:
+            old_data = ScanDiffer.load_scan(args.diff)
+            diff_res = ScanDiffer.compare(old_data, aggregated)
+            reporter.print_diff_terminal(diff_res)
+        except Exception as e:
+            print(f"\n{Colors.FAIL}[-] Diff Comparison Error: {e}{Colors.ENDC}")
 
 if __name__ == "__main__":
     main()

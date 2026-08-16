@@ -10,13 +10,15 @@ from typing import Dict, Any
 from jshound.crawler import JSCrawler
 from jshound.analyzer import JSAnalyzer
 from jshound.sourcemap import SourceMapUnpacker
+from jshound.exporters import Exporters
+from jshound.diff import ScanDiffer
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSHound - Web Security Recon Dashboard</title>
+    <title>JSHound - Advanced Frontend Recon & DOM Hunter</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -32,6 +34,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             --accent-green: #00e676;
             --accent-red: #ff5252;
             --accent-orange: #ffab40;
+            --accent-purple: #bd93f9;
             --font-main: 'Plus Jakarta Sans', -apple-system, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
@@ -51,7 +54,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
 
         .container {
-            max-width: 1280px;
+            max-width: 1320px;
             margin: 0 auto;
         }
 
@@ -86,12 +89,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .brand-desc {
             font-size: 13px;
             color: var(--text-muted);
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
         }
 
         .badge-zero-dep {
@@ -170,6 +167,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             margin-top: 14px;
             font-size: 13px;
             color: var(--text-muted);
+            flex-wrap: wrap;
         }
 
         .checkbox-label {
@@ -182,7 +180,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 16px;
             margin-bottom: 28px;
         }
@@ -191,14 +189,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 10px;
-            padding: 16px 20px;
+            padding: 16px 18px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-muted);
@@ -206,7 +204,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
 
         .stat-value {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 800;
             font-family: var(--font-mono);
         }
@@ -215,6 +213,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .stat-value.green { color: var(--accent-green); }
         .stat-value.cyan { color: var(--accent-cyan); }
         .stat-value.orange { color: var(--accent-orange); }
+        .stat-value.purple { color: var(--accent-purple); }
 
         .toolbar-row {
             display: flex;
@@ -229,15 +228,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         .tabs {
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            flex-wrap: wrap;
         }
 
         .tab-btn {
             background: transparent;
             border: none;
             color: var(--text-muted);
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 8px 14px;
+            font-size: 13px;
             font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
@@ -256,14 +256,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         .report-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            flex-wrap: wrap;
         }
 
         .btn-report {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 7px 14px;
+            padding: 6px 12px;
             font-size: 12px;
             font-family: var(--font-mono);
             font-weight: 600;
@@ -354,6 +355,28 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             border: 1px solid rgba(255, 82, 82, 0.3);
         }
 
+        .badge-vuln {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            background: rgba(255, 171, 64, 0.15);
+            color: var(--accent-orange);
+            border: 1px solid rgba(255, 171, 64, 0.3);
+        }
+
+        .badge-entropy {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 3px;
+            background: var(--bg-subtle);
+            color: var(--accent-cyan);
+            border: 1px solid var(--border-color);
+            margin-left: 6px;
+        }
+
         .list-container {
             padding: 12px;
             max-height: 500px;
@@ -407,7 +430,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 <div class="brand-logo">🔍</div>
                 <div>
                     <div class="brand-title">JSHound</div>
-                    <div class="brand-desc">Fast Frontend JS Static Reconnaissance & Secret/Endpoint Hunter</div>
+                    <div class="brand-desc">Next-Gen JS Static Reconnaissance, DOM Vulnerability & Multi-Cloud Secret Hunter</div>
                 </div>
             </div>
             <div class="header-actions">
@@ -418,7 +441,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="scan-box">
             <form id="scanForm" onsubmit="startScan(event)">
                 <div class="input-group">
-                    <input type="text" id="targetUrl" class="input-url" placeholder="Enter target URL (e.g. https://ginandjuice.shop/ or http://localhost:3000)" required autocomplete="off" />
+                    <input type="text" id="targetUrl" class="input-url" placeholder="Enter target URL (e.g. https://reqres.in/ or http://localhost:3000)" required autocomplete="off" />
                     <button type="submit" id="btnScan" class="btn-scan">
                         <span id="btnText">Launch Recon</span>
                         <span id="btnSpinner" class="spinner" style="display: none;"></span>
@@ -443,36 +466,48 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 <div class="stat-value cyan" id="statFiles">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Secrets Discovered</div>
+                <div class="stat-label">Secrets & Tokens</div>
                 <div class="stat-value red" id="statSecrets">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">DOM Sinks / Vulns</div>
+                <div class="stat-value orange" id="statDomVulns">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Unique Endpoints</div>
                 <div class="stat-value green" id="statEndpoints">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Internal / Staging Hosts</div>
-                <div class="stat-value orange" id="statHosts">0</div>
+                <div class="stat-label">GraphQL Queries</div>
+                <div class="stat-value purple" id="statGraphql">0</div>
             </div>
         </div>
 
         <div class="toolbar-row">
             <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('secrets', this)">🔑 Exposed Secrets (<span id="countSecrets">0</span>)</button>
-                <button class="tab-btn" onclick="switchTab('endpoints', this)">🌐 API Endpoints (<span id="countEndpoints">0</span>)</button>
-                <button class="tab-btn" onclick="switchTab('hosts', this)">🏢 Internal Hosts (<span id="countHosts">0</span>)</button>
-                <button class="tab-btn" onclick="switchTab('files', this)">📦 Analyzed Files (<span id="countFiles">0</span>)</button>
+                <button class="tab-btn active" onclick="switchTab('secrets', this)">🔑 Secrets (<span id="countSecrets">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('domvulns', this)">🔬 DOM Sinks (<span id="countDomVulns">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('endpoints', this)">🌐 Endpoints (<span id="countEndpoints">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('graphql', this)">🧬 GraphQL (<span id="countGraphql">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('hosts', this)">🏢 Hosts (<span id="countHosts">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('files', this)">📦 Files (<span id="countFiles">0</span>)</button>
             </div>
 
             <div class="report-actions">
                 <button id="btnExportMd" class="btn-report" onclick="downloadMarkdown()" disabled>
-                    <span>📄 Export Markdown</span>
+                    <span>📄 Markdown</span>
+                </button>
+                <button id="btnExportPostman" class="btn-report" onclick="downloadPostman()" disabled>
+                    <span>🚀 Postman v2.1</span>
+                </button>
+                <button id="btnExportOpenAPI" class="btn-report" onclick="downloadOpenAPI()" disabled>
+                    <span>📑 OpenAPI 3.0</span>
                 </button>
                 <button id="btnExportJson" class="btn-report" onclick="downloadJSON()" disabled>
-                    <span>💾 Export JSON</span>
+                    <span>💾 JSON</span>
                 </button>
                 <button id="btnExportTxt" class="btn-report" onclick="downloadEndpointsTxt()" disabled>
-                    <span>📝 Endpoints .txt</span>
+                    <span>📝 Endpoints.txt</span>
                 </button>
             </div>
         </div>
@@ -484,7 +519,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 220px;">Type</th>
+                                <th style="width: 240px;">Type & Entropy</th>
                                 <th>Detected Value</th>
                                 <th>Source Location</th>
                                 <th>Context Snippet</th>
@@ -498,11 +533,40 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
         </div>
 
+        <!-- TAB: DOM VULNS -->
+        <div id="tab-domvulns" class="tab-content">
+            <div class="card">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 260px;">Sink / Vulnerability Type</th>
+                                <th>Dangerous Code Snippet</th>
+                                <th>Source Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="domVulnsTableBody">
+                            <tr><td colspan="3" class="empty-state">No DOM sinks discovered.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- TAB: ENDPOINTS -->
         <div id="tab-endpoints" class="tab-content">
             <div class="card">
                 <div class="list-container" id="endpointsList">
                     <div class="empty-state">No endpoints discovered yet.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: GRAPHQL -->
+        <div id="tab-graphql" class="tab-content">
+            <div class="card">
+                <div class="list-container" id="graphqlList">
+                    <div class="empty-state">No GraphQL queries or mutations found.</div>
                 </div>
             </div>
         </div>
@@ -583,6 +647,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function enableReportButtons(enabled) {
             document.getElementById('btnExportMd').disabled = !enabled;
+            document.getElementById('btnExportPostman').disabled = !enabled;
+            document.getElementById('btnExportOpenAPI').disabled = !enabled;
             document.getElementById('btnExportJson').disabled = !enabled;
             document.getElementById('btnExportTxt').disabled = !enabled;
         }
@@ -590,18 +656,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         function renderResults(data) {
             const files = data.files_analyzed || [];
             const secrets = data.secrets || [];
+            const domVulns = data.dom_vulns || [];
             const endpoints = data.endpoints || [];
+            const graphql = data.graphql_queries || [];
             const hosts = data.internal_hosts || [];
 
             // Stats Update
             document.getElementById('statFiles').innerText = files.length;
             document.getElementById('statSecrets').innerText = secrets.length;
+            document.getElementById('statDomVulns').innerText = domVulns.length;
             document.getElementById('statEndpoints').innerText = endpoints.length;
-            document.getElementById('statHosts').innerText = hosts.length;
+            document.getElementById('statGraphql').innerText = graphql.length;
 
             document.getElementById('countFiles').innerText = files.length;
             document.getElementById('countSecrets').innerText = secrets.length;
+            document.getElementById('countDomVulns').innerText = domVulns.length;
             document.getElementById('countEndpoints').innerText = endpoints.length;
+            document.getElementById('countGraphql').innerText = graphql.length;
             document.getElementById('countHosts').innerText = hosts.length;
 
             // 1. Secrets Table
@@ -611,7 +682,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             } else {
                 secretsBody.innerHTML = secrets.map(s => `
                     <tr>
-                        <td><span class="badge-type">${escapeHtml(s.type)}</span></td>
+                        <td>
+                            <span class="badge-type">${escapeHtml(s.type)}</span>
+                            ${s.entropy ? `<span class="badge-entropy">H: ${s.entropy}</span>` : ''}
+                        </td>
                         <td class="mono" style="color: var(--accent-red); font-weight: 600;">${escapeHtml(s.value)}</td>
                         <td class="mono" style="color: var(--text-muted);">${escapeHtml(s.source)}</td>
                         <td class="mono" style="font-size: 12px; color: var(--text-muted);">${escapeHtml(s.context || '')}</td>
@@ -619,7 +693,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 `).join('');
             }
 
-            // 2. Endpoints List
+            // 2. DOM Vulns Table
+            const domBody = document.getElementById('domVulnsTableBody');
+            if (domVulns.length === 0) {
+                domBody.innerHTML = '<tr><td colspan="3" class="empty-state">No DOM sinks or vulnerabilities discovered.</td></tr>';
+            } else {
+                domBody.innerHTML = domVulns.map(v => `
+                    <tr>
+                        <td><span class="badge-vuln">${escapeHtml(v.type)}</span></td>
+                        <td class="mono" style="color: var(--accent-orange); font-size: 12px;">${escapeHtml(v.code)}</td>
+                        <td class="mono" style="color: var(--text-muted);">${escapeHtml(v.source)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // 3. Endpoints List
             const endpointsList = document.getElementById('endpointsList');
             if (endpoints.length === 0) {
                 endpointsList.innerHTML = '<div class="empty-state">No endpoints discovered.</div>';
@@ -631,7 +719,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 `).join('');
             }
 
-            // 3. Hosts List
+            // 4. GraphQL List
+            const graphqlList = document.getElementById('graphqlList');
+            if (graphql.length === 0) {
+                graphqlList.innerHTML = '<div class="empty-state">No GraphQL queries discovered.</div>';
+            } else {
+                graphqlList.innerHTML = graphql.map(g => `
+                    <div class="list-item" style="color: var(--accent-purple); display: block;">
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Source: ${escapeHtml(g.source)}</div>
+                        <div style="font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap;">${escapeHtml(g.query)}</div>
+                    </div>
+                `).join('');
+            }
+
+            // 5. Hosts List
             const hostsList = document.getElementById('hostsList');
             if (hosts.length === 0) {
                 hostsList.innerHTML = '<div class="empty-state">No internal hosts discovered.</div>';
@@ -643,7 +744,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 `).join('');
             }
 
-            // 4. Files List
+            // 6. Files List
             const filesList = document.getElementById('filesList');
             if (files.length === 0) {
                 filesList.innerHTML = '<div class="empty-state">No JS files analyzed.</div>';
@@ -674,6 +775,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             downloadFile(`jshound_${targetDomain}.json`, JSON.stringify(currentScanResult, null, 2), 'application/json');
         }
 
+        async function downloadPostman() {
+            if (!currentScanResult) return;
+            const res = await fetch('/api/export/postman', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentScanResult)
+            });
+            const data = await res.json();
+            const targetDomain = getSafeFilename(currentScanResult.target || 'target');
+            downloadFile(`postman_${targetDomain}.json`, JSON.stringify(data, null, 2), 'application/json');
+        }
+
+        async function downloadOpenAPI() {
+            if (!currentScanResult) return;
+            const res = await fetch('/api/export/openapi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentScanResult)
+            });
+            const data = await res.json();
+            const targetDomain = getSafeFilename(currentScanResult.target || 'target');
+            downloadFile(`openapi_${targetDomain}.json`, JSON.stringify(data, null, 2), 'application/json');
+        }
+
         function downloadEndpointsTxt() {
             if (!currentScanResult) return;
             const targetDomain = getSafeFilename(currentScanResult.target || 'target');
@@ -690,19 +815,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             md += `**Target URL:** \`${data.target}\`  \\n`;
             md += `**Analyzed Files:** \`${(data.files_analyzed || []).length}\`  \\n`;
             md += `**Source Maps Extracted:** \`${(data.sourcemaps_unpacked || []).length}\`  \\n\\n`;
-            md += `---\\n\\n## 1. 🔑 Exposed Secrets & API Tokens (${(data.secrets || []).length})\\n\\n`;
-            md += `| Type | Value | Source File |\\n| :--- | :--- | :--- |\\n`;
             
+            md += `---\\n\\n## 1. 🔑 Exposed Secrets & API Tokens (${(data.secrets || []).length})\\n\\n`;
+            md += `| Type | Value | Entropy | Source File |\\n| :--- | :--- | :--- | :--- |\\n`;
             (data.secrets || []).forEach(s => {
-                md += `| **${s.type}** | \`${s.value}\` | \`${s.source}\` |\\n`;
+                md += `| **${s.type}** | \`${s.value}\` | \`${s.entropy || '-'}\` | \`${s.source}\` |\\n`;
             });
 
-            md += `\\n---\\n\\n## 2. 🏢 Internal & Staging Hosts (${(data.internal_hosts || []).length})\\n\\n`;
+            md += `\\n---\\n\\n## 2. 🔬 Potential DOM XSS & Dangerous Sinks (${(data.dom_vulns || []).length})\\n\\n`;
+            md += `| Vulnerability Type | Source File | Snippet |\\n| :--- | :--- | :--- |\\n`;
+            (data.dom_vulns || []).forEach(v => {
+                md += `| \`${v.type}\` | \`${v.source}\` | \`${v.code.replace(/\|/g, '\\\\|')}\` |\\n`;
+            });
+
+            md += `\\n---\\n\\n## 3. 🧬 GraphQL Queries (${(data.graphql_queries || []).length})\\n\\n`;
+            (data.graphql_queries || []).forEach(g => {
+                md += `\`\`\`graphql\\n# Source: ${g.source}\\n${g.query}\\n\`\`\`\\n\\n`;
+            });
+
+            md += `---\\n\\n## 4. 🏢 Internal & Staging Hosts (${(data.internal_hosts || []).length})\\n\\n`;
             (data.internal_hosts || []).forEach(h => {
                 md += `- \`${h}\`\\n`;
             });
 
-            md += `\\n---\\n\\n## 3. 🌐 Discovered Endpoints & Paths (${(data.endpoints || []).length})\\n\\n\`\`\`text\\n`;
+            md += `\\n---\\n\\n## 5. 🌐 Discovered Endpoints & Paths (${(data.endpoints || []).length})\\n\\n\`\`\`text\\n`;
             (data.endpoints || []).forEach(ep => {
                 md += `${ep}\\n`;
             });
@@ -727,7 +863,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 class JSHoundRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        # Clean terminal logging
         pass
 
     def do_GET(self):
@@ -744,11 +879,13 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/scan":
-            content_len = int(self.headers.get("Content-Length", 0))
-            post_body = self.rfile.read(content_len)
-            try:
-                data = json.loads(post_body.decode("utf-8"))
+        content_len = int(self.headers.get("Content-Length", 0))
+        post_body = self.rfile.read(content_len)
+
+        try:
+            data = json.loads(post_body.decode("utf-8")) if post_body else {}
+
+            if parsed.path == "/api/scan":
                 target_url = data.get("url", "").strip()
                 unpack_map = data.get("unpack_sourcemap", True)
                 insecure = data.get("insecure", False)
@@ -760,15 +897,24 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
                 if not target_url.startswith("http://") and not target_url.startswith("https://"):
                     target_url = "https://" + target_url
 
-                # Perform scan
                 result = self._run_scan(target_url, unpack_sourcemap=unpack_map, insecure=insecure)
                 self._send_json(result, 200)
-            except Exception as e:
-                self._send_json({"error": str(e)}, 500)
-        else:
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b"Not Found")
+
+            elif parsed.path == "/api/export/postman":
+                postman_res = Exporters.to_postman_collection(data)
+                self._send_json(postman_res, 200)
+
+            elif parsed.path == "/api/export/openapi":
+                openapi_res = Exporters.to_openapi_spec(data)
+                self._send_json(openapi_res, 200)
+
+            else:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"Not Found")
+
+        except Exception as e:
+            self._send_json({"error": str(e)}, 500)
 
     def _send_json(self, payload: Dict[str, Any], status: int = 200):
         self.send_response(status)
@@ -787,7 +933,10 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
             "sourcemaps_unpacked": [],
             "secrets": [],
             "endpoints": set(),
-            "internal_hosts": set()
+            "internal_hosts": set(),
+            "dom_vulns": [],
+            "graphql_queries": [],
+            "api_blueprints": []
         }
 
         initial_content, err = crawler.fetch_url(target_url)
@@ -804,6 +953,9 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
                 aggregated["secrets"].append(s)
             aggregated["endpoints"].update(html_scan["endpoints"])
             aggregated["internal_hosts"].update(html_scan["internal_hosts"])
+            aggregated["dom_vulns"].extend(html_scan["dom_vulns"])
+            aggregated["graphql_queries"].extend(html_scan["graphql_queries"])
+            aggregated["api_blueprints"].extend(html_scan["api_blueprints"])
 
         for js_url in js_urls:
             js_content, _ = crawler.fetch_url(js_url)
@@ -817,6 +969,9 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
                 aggregated["secrets"].append(s)
             aggregated["endpoints"].update(scan_res["endpoints"])
             aggregated["internal_hosts"].update(scan_res["internal_hosts"])
+            aggregated["dom_vulns"].extend(scan_res["dom_vulns"])
+            aggregated["graphql_queries"].extend(scan_res["graphql_queries"])
+            aggregated["api_blueprints"].extend(scan_res["api_blueprints"])
 
             if unpack_sourcemap:
                 map_url = unpacker.detect_map_url(js_url, js_content)
@@ -842,6 +997,9 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
                                             aggregated["secrets"].append(s)
                                         aggregated["endpoints"].update(src_scan["endpoints"])
                                         aggregated["internal_hosts"].update(src_scan["internal_hosts"])
+                                        aggregated["dom_vulns"].extend(src_scan["dom_vulns"])
+                                        aggregated["graphql_queries"].extend(src_scan["graphql_queries"])
+                                        aggregated["api_blueprints"].extend(src_scan["api_blueprints"])
                                 except Exception:
                                     pass
 
