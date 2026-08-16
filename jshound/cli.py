@@ -28,7 +28,7 @@ def main():
     parser.add_argument("--no-browser", action="store_true", help="Do not open browser automatically when running in web mode")
     parser.add_argument("-o", "--output-dir", default="output", help="Directory to save output reports and unpacked source maps (default: ./output)")
     parser.add_argument("--no-sourcemap", action="store_true", help="Disable automatic sourcemap (.map) detection and unpacking")
-    parser.add_argument("--timeout", type=int, default=12, help="HTTP request timeout in seconds (default: 12)")
+    parser.add_argument("--timeout", type=int, default=15, help="HTTP request timeout in seconds (default: 15)")
     parser.add_argument("-k", "--insecure", action="store_true", help="Allow insecure SSL connections")
     parser.add_argument("-H", "--header", action="append", help="Custom HTTP header (format: 'Key: Value'). Can be repeated.")
 
@@ -73,10 +73,10 @@ def main():
             target_url = "https://" + target_url
 
         print(f"{Colors.BLUE}[*] Fetching and crawling initial target: {target_url}{Colors.ENDC}")
-        initial_content = crawler.fetch_url(target_url)
+        initial_content, err = crawler.fetch_url(target_url)
 
         if not initial_content:
-            print(f"{Colors.FAIL}[-] Failed to fetch {target_url}. Check connection or SSL options.{Colors.ENDC}")
+            print(f"{Colors.FAIL}[-] Failed to fetch {target_url}. Reason: {err}{Colors.ENDC}")
             sys.exit(1)
 
         # Check if URL itself is a JS file
@@ -97,7 +97,7 @@ def main():
 
         for idx, js_url in enumerate(js_urls, start=1):
             print(f"  [{idx}/{len(js_urls)}] Scanning: {js_url}")
-            js_content = crawler.fetch_url(js_url)
+            js_content, _ = crawler.fetch_url(js_url)
             if not js_content:
                 continue
 
@@ -115,7 +115,7 @@ def main():
             if not args.no_sourcemap:
                 map_url = unpacker.detect_map_url(js_url, js_content)
                 if map_url:
-                    map_content = crawler.fetch_url(map_url)
+                    map_content, _ = crawler.fetch_url(map_url)
                     if map_content:
                         target_dir = os.path.join(args.output_dir, "unpacked_sourcemaps", os.path.basename(js_url).replace(".js", ""))
                         count, files = unpacker.unpack(map_content, target_dir)

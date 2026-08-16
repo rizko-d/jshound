@@ -418,7 +418,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="scan-box">
             <form id="scanForm" onsubmit="startScan(event)">
                 <div class="input-group">
-                    <input type="text" id="targetUrl" class="input-url" placeholder="Enter target URL (e.g. https://demo.owasp-juice.shop/ or http://localhost:3000)" required autocomplete="off" />
+                    <input type="text" id="targetUrl" class="input-url" placeholder="Enter target URL (e.g. https://ginandjuice.shop/ or http://localhost:3000)" required autocomplete="off" />
                     <button type="submit" id="btnScan" class="btn-scan">
                         <span id="btnText">Launch Recon</span>
                         <span id="btnSpinner" class="spinner" style="display: none;"></span>
@@ -566,7 +566,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
                 const data = await response.json();
                 if (data.error) {
-                    alert('Scan Error: ' + data.error);
+                    alert('Scan Notice: ' + data.error);
                 } else {
                     currentScanResult = data;
                     renderResults(data);
@@ -777,7 +777,7 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(payload).encode("utf-8"))
 
     def _run_scan(self, target_url: str, unpack_sourcemap: bool = True, insecure: bool = False) -> Dict[str, Any]:
-        crawler = JSCrawler(timeout=12, verify_ssl=not insecure)
+        crawler = JSCrawler(timeout=15, verify_ssl=not insecure)
         analyzer = JSAnalyzer()
         unpacker = SourceMapUnpacker()
 
@@ -790,9 +790,9 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
             "internal_hosts": set()
         }
 
-        initial_content = crawler.fetch_url(target_url)
+        initial_content, err = crawler.fetch_url(target_url)
         if not initial_content:
-            return {"error": f"Failed to fetch {target_url}. Target unreachable."}
+            return {"error": f"Failed to fetch {target_url}. Reason: {err}"}
 
         if target_url.split("?")[0].endswith(".js"):
             js_urls = [target_url]
@@ -806,7 +806,7 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
             aggregated["internal_hosts"].update(html_scan["internal_hosts"])
 
         for js_url in js_urls:
-            js_content = crawler.fetch_url(js_url)
+            js_content, _ = crawler.fetch_url(js_url)
             if not js_content:
                 continue
 
@@ -821,7 +821,7 @@ class JSHoundRequestHandler(BaseHTTPRequestHandler):
             if unpack_sourcemap:
                 map_url = unpacker.detect_map_url(js_url, js_content)
                 if map_url:
-                    map_content = crawler.fetch_url(map_url)
+                    map_content, _ = crawler.fetch_url(map_url)
                     if map_content:
                         target_dir = os.path.join("output", "unpacked_sourcemaps", os.path.basename(js_url).replace(".js", ""))
                         count, files = unpacker.unpack(map_content, target_dir)

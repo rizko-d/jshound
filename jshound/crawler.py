@@ -2,21 +2,25 @@ import re
 import urllib.request
 import urllib.error
 import urllib.parse
-from typing import List, Set, Dict, Optional
+from typing import List, Set, Dict, Optional, Tuple
 
 class JSCrawler:
-    def __init__(self, timeout: int = 10, headers: Optional[Dict[str, str]] = None, verify_ssl: bool = True):
+    def __init__(self, timeout: int = 15, headers: Optional[Dict[str, str]] = None, verify_ssl: bool = True):
         self.timeout = timeout
         self.headers = headers or {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "*/*"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/javascript,text/javascript,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9"
         }
         self.verify_ssl = verify_ssl
 
-    def fetch_url(self, url: str) -> Optional[str]:
+    def fetch_url(self, url: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Fetches URL and returns (content, error_message).
+        If successful, error_message is None.
+        """
         try:
             req = urllib.request.Request(url, headers=self.headers)
-            # Create context if SSL verification should be relaxed if needed
             ctx = None
             if not self.verify_ssl:
                 import ssl
@@ -25,14 +29,17 @@ class JSCrawler:
                 ctx.verify_mode = ssl.CERT_NONE
 
             with urllib.request.urlopen(req, timeout=self.timeout, context=ctx) as response:
-                content_type = response.headers.get("Content-Type", "")
                 data = response.read()
                 try:
-                    return data.decode("utf-8")
+                    return data.decode("utf-8"), None
                 except UnicodeDecodeError:
-                    return data.decode("latin-1", errors="ignore")
+                    return data.decode("latin-1", errors="ignore"), None
+        except urllib.error.HTTPError as e:
+            return None, f"HTTP Error {e.code}: {e.reason} (Target server issue or protected)"
+        except urllib.error.URLError as e:
+            return None, f"Connection Failed: {e.reason}"
         except Exception as e:
-            return None
+            return None, f"Network Error: {str(e)}"
 
     def extract_js_links(self, base_url: str, html_content: str) -> List[str]:
         found_urls: Set[str] = set()
@@ -45,7 +52,6 @@ class JSCrawler:
                 found_urls.add(full_url)
 
         # 2. Modern webpack/vite/next.js dynamic chunks pattern
-        # e.g., static/chunks/..., _next/static/..., /assets/index-xxx.js
         chunk_patterns = [
             re.compile(r'[\'"]([^\'"]*\.js(?:[?#][^\'"]*)?)[\'"]', re.IGNORECASE),
             re.compile(r'[\'"]([^\'"]*(?:static|chunks|assets|bundles|build)/[^\'"]+)[\'"]', re.IGNORECASE)
