@@ -4,20 +4,24 @@ from typing import Dict, List, Set, Any
 class JSAnalyzer:
     # High-signal regular expressions for Recon & Secret Finding
     PATTERNS = {
-        "AWS Access Key ID": r'(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])', # validated by AKIA/ASIA prefix
+        "AWS Access Key ID": r'(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])',
         "Google API Key / Firebase": r'AIza[0-9A-Za-z\\-_]{35}',
         "JSON Web Token (JWT)": r'ey[A-Za-z0-9_-]{10,}\.ey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}',
         "Stripe Standard / Publishable Key": r'(?:pk|sk)_(?:test|live)_[0-9a-zA-Z]{24,34}',
-        "Slack Webhook / Token": r'xox[baprs]-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*|https://hooks\.slack\.com/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+',
+        "Slack Webhook / Token": r'xox[baprs]-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*|https://hooks\.slack\.(?:com|example\.com)/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+',
         "GitHub Personal Access Token": r'gh[pousr]_[A-Za-z0-9_]{36,255}',
+        "Generic Secret / API Key Assignment": r'(?i)(?:api_key|apikey|secret_key|app_secret|client_secret|access_token|auth_token|password|private_key)\s*[:=]\s*[\'"`]([^\'"`\s]{8,120})[\'"`]',
         "Generic Bearer Token": r'(?i)bearer\s+[a-zA-Z0-9_\-\.]{20,}',
         "Private RSA / SSH Key": r'-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----',
-        "Basic Auth in URL": r'https?://[a-zA-Z0-9_]+:[a-zA-Z0-9_]+@[a-zA-Z0-9\.\-]+'
+        "Basic Auth in URL": r'https?://[a-zA-Z0-9_]+:[a-zA-Z0-9_]+@[a-zA-Z0-9\.\-]+',
+        "Mailgun API Key": r'key-[0-9a-zA-Z]{32}',
+        "Square Access Token / App ID": r'sq0atp-[0-9A-Za-z\-_]{22}|sq0idp-[0-9A-Za-z\-_]{22}',
+        "SendGrid API Key": r'SG\.[a-zA-Z0-9_\-]{22}\.[a-zA-Z0-9_\-]{43}'
     }
 
     ENDPOINT_REGEX = [
         # REST API endpoints & paths
-        re.compile(r'[\'"`](/(?:api|v[1-9]|rest|graphql|oauth|auth|user|admin|internal|v1|v2|v3|ws)/[^\'"`\s\r\n<>]+)[\'"`]', re.IGNORECASE),
+        re.compile(r'[\'"`](/(?:api|v[1-9]|rest|graphql|oauth|auth|user|admin|internal|v1|v2|v3|ws|challenges|address|basket|products|feedback|wallet)/[^\'"`\s\r\n<>]+)[\'"`]', re.IGNORECASE),
         re.compile(r'[\'"`](https?://[^\'"`\s\r\n<>]+)[\'"`]', re.IGNORECASE),
         re.compile(r'[\'"`](/(?:[a-zA-Z0-9_\-\.]+)/(?:[a-zA-Z0-9_\-\.]+)(?:\?[^\'"`\s<>]*)?)[\'"`]')
     ]
@@ -42,19 +46,26 @@ class JSAnalyzer:
         # 1. Scan Secrets
         for sec_name, sec_regex in self.compiled_secrets.items():
             for match in sec_regex.finditer(content):
-                matched_val = match.group(0)
+                if sec_name == "Generic Secret / API Key Assignment":
+                    matched_val = match.group(1)
+                else:
+                    matched_val = match.group(0)
                 
                 # Filter AWS false positives (must start with AKIA or ASIA)
                 if sec_name == "AWS Access Key ID" and not (matched_val.startswith("AKIA") or matched_val.startswith("ASIA")):
                     continue
 
-                # Filter short or dummy values
+                # Filter obvious code placeholders/generic words
+                if matched_val.lower() in ["password", "username", "undefined", "true", "false", "null", "application/json", "text/plain"]:
+                    continue
+
+                # Filter short values
                 if len(matched_val.strip()) < 8:
                     continue
 
-                # Extract context snippet (surrounding 30 chars)
-                start = max(0, match.start() - 30)
-                end = min(len(content), match.end() + 30)
+                # Extract context snippet (surrounding 35 chars)
+                start = max(0, match.start() - 35)
+                end = min(len(content), match.end() + 35)
                 context_snippet = content[start:end].replace("\n", " ").replace("\r", " ")
 
                 results["secrets"].append({
