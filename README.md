@@ -1,7 +1,7 @@
-# 🔍 JSHound
+# JSHound
 
 <p align="center">
-  <img src="assets/preview.png?v=2" alt="JSHound Web Dashboard Preview" width="100%">
+  <img src="assets/preview.png?v=3" alt="JSHound Web Dashboard Preview" width="100%">
 </p>
 
 <p align="center">
@@ -14,15 +14,15 @@
 
 ---
 
-## 🚀 Overview
+## Overview
 
-**JSHound** is an advanced, zero-dependency frontend JavaScript static reconnaissance, DOM vulnerability auditing, and multi-cloud secret hunting engine. It analyzes modern Single Page Application client-side bundles (React, Next.js, Vue, Angular, Vite, Webpack) to discover hidden attack surfaces, unpack source maps, extract API blueprints, and detect client-side vulnerabilities.
+**JSHound** is a zero-dependency frontend JavaScript static reconnaissance, DOM vulnerability auditing, and multi-cloud secret hunting engine. It analyzes modern Single Page Application client-side bundles (React, Next.js, Vue, Angular, Vite, Webpack) to discover hidden attack surfaces, unpack source maps, extract API blueprints, and detect client-side vulnerabilities.
 
-Equipped with both a zero-dependency **Dark-Themed Web Dashboard** and a powerful **CLI Engine with Continuous Diffing**.
+Equipped with both a zero-dependency **Dark-Themed Web Dashboard** and a scriptable **CLI Engine with Continuous Diffing**.
 
 ---
 
-## 🎯 OWASP & MITRE ATT&CK Mapping
+## OWASP & MITRE ATT&CK Mapping
 
 * **OWASP Top 10 (2025 Release):**
   * `A01:2025 – Broken Access Control` (Discovers hidden administrative endpoints, IDOR surface, and API parameters).
@@ -38,32 +38,32 @@ Equipped with both a zero-dependency **Dark-Themed Web Dashboard** and a powerfu
 
 ---
 
-## ✨ 6 Next-Gen Capabilities
+## Key Capabilities
 
-### 1. 🔬 DOM XSS & Dangerous Sink Hunter
+### 1. DOM XSS & Dangerous Sink Hunter
 Identifies insecure client-side source-to-sink dataflows:
-* Sinks: `innerHTML`, `outerHTML`, `document.write`, `eval()`, `setTimeout(string)`, `dangerouslySetInnerHTML`.
-* Open Redirects: Unvalidated `location.href`, `location.replace`, `location.assign` assignments.
-* Insecure Messaging: `postMessage` with wildcard (`*`) target origin or message listeners lacking `origin` verification.
+* **Sinks:** `innerHTML`, `outerHTML`, `document.write`, `eval()`, `setTimeout(string)`, `dangerouslySetInnerHTML`.
+* **Open Redirects:** Unvalidated `location.href`, `location.replace`, `location.assign` assignments.
+* **Insecure Messaging:** `postMessage` with wildcard (`*`) target origin or message listeners lacking `origin` verification.
 
-### 2. 🧬 GraphQL Query & Mutation Extractor
+### 2. GraphQL Query & Mutation Extractor
 Automatically extracts inline `gql` template literals and GraphQL documents (`query`, `mutation`, `subscription`) to reconstruct schemas and speed up GraphQL API fuzzing.
 
-### 3. 🎯 API Parameter & Request Blueprint Engine
+### 3. API Parameter & Request Blueprint Engine
 Parses `fetch()`, `axios()`, and `$.ajax()` calls to extract HTTP methods (`GET`, `POST`, `PUT`, `DELETE`), URL query parameters (`?limit=&status=`), and request payloads.
 
-### 4. 🧮 Shannon Entropy Secret Heuristic
+### 4. Shannon Entropy Secret Heuristic
 Uses mathematical Shannon Entropy calculations (`H >= 4.5`) to uncover high-randomness custom API keys and signatures that do not follow standard vendor regex patterns.
 
-### 5. 📦 Postman v2.1 & OpenAPI 3.0 Exporters
+### 5. Postman v2.1 & OpenAPI 3.0 Exporters
 Exports discovered attack surfaces directly into standard **Postman Collection v2.1** and **OpenAPI 3.0 Specification** JSON files for seamless importing into **Burp Suite**, **Caido**, or **Postman**.
 
-### 6. 🔄 Continuous Asset Diffing (`--diff`)
+### 6. Continuous Asset Diffing (`--diff`)
 Compares new scans against historical baselines to immediately flag newly deployed endpoints, newly leaked credentials, or fresh DOM vulnerabilities in CI/CD or bug bounty monitoring.
 
 ---
 
-## 🔑 Multi-Cloud Credential Detection
+## Multi-Cloud Credential Detection
 
 * **AWS:** Access Key IDs (`AKIA...`, `ASIA...`)
 * **Microsoft Azure:** Storage Account Connection Strings, Shared Access Signature (SAS) tokens (`sig=...`), Tenant / Client IDs (GUID).
@@ -73,7 +73,7 @@ Compares new scans against historical baselines to immediately flag newly deploy
 
 ---
 
-## 💻 Usage
+## Usage
 
 ### 1. Interactive Web Dashboard (Recommended)
 Launch the visual dashboard on `http://127.0.0.1:8899/`:
@@ -127,7 +127,7 @@ options:
 
 ---
 
-## 📁 Output Artifacts
+## Output Artifacts
 
 When running a scan, JSHound generates complete pentest artifacts:
 ```text
@@ -145,5 +145,5 @@ output/
 
 ---
 
-## ⚖️ Disclaimer
+## Disclaimer
 *This tool is developed for authorized security research, penetration testing, and defensive auditing purposes only.*
