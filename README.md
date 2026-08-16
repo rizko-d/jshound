@@ -8,7 +8,7 @@
   <a href="https://github.com/rizko-d/jshound/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.8+">
   <img src="https://img.shields.io/badge/Architecture-Zero--Dependency-00e676?style=for-the-badge" alt="Zero-Dependency">
-  <img src="https://img.shields.io/badge/OWASP-Top%2010%20(2021)-orange?style=for-the-badge" alt="OWASP Top 10">
+  <img src="https://img.shields.io/badge/OWASP-Top%2010%20(2025)-orange?style=for-the-badge" alt="OWASP Top 10 (2025)">
 </p>
 
 ---
@@ -23,10 +23,10 @@ Equipped with both a zero-dependency **Dark-Themed Web Dashboard** and a powerfu
 
 ## 🎯 OWASP & MITRE ATT&CK Mapping
 
-* **OWASP Top 10 (2021):**
-  * `A01:2021 – Broken Access Control` (Discovers hidden administrative & internal API endpoints).
-  * `A05:2021 – Security Misconfiguration` (Exposed `.js.map` source maps, staging environments, cloud storage).
-  * `A07:2021 – Identification and Authentication Failures` (Hardcoded API keys, JWT tokens, AWS/Azure/OCI cloud credentials).
+* **OWASP Top 10 (2025 Release):**
+  * `A01:2025 – Broken Access Control` (Discovers hidden administrative & internal API endpoints, IDOR surface).
+  * `A02:2025 – Security Misconfiguration` (Exposed `.js.map` source maps, development/staging environments, open storage endpoints).
+  * `A07:2025 – Authentication Failures` (Hardcoded API keys, JWT tokens, AWS/Azure/OCI cloud access keys, OAuth credentials).
 * **MITRE ATT&CK (Enterprise):**
   * `T1596 - Search Open Technical Databases` (Reconnaissance)
   * `T1552 - Unsecured Credentials: Credentials in Files` (Credential Access)
