@@ -118,10 +118,5 @@ output/
 
 ---
 
-## 📄 License
-This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
-
----
-
 ## ⚖️ Disclaimer
 *This tool is developed for authorized security research, penetration testing, and defensive auditing purposes only.*
