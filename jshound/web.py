@@ -88,11 +88,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             color: var(--text-muted);
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .badge-zero-dep {
             background: rgba(0, 230, 118, 0.1);
             color: var(--accent-green);
             border: 1px solid rgba(0, 230, 118, 0.3);
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 99px;
             font-size: 11px;
             font-family: var(--font-mono);
@@ -210,15 +216,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .stat-value.cyan { color: var(--accent-cyan); }
         .stat-value.orange { color: var(--accent-orange); }
 
-        .tabs-container {
-            margin-bottom: 24px;
+        .toolbar-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .tabs {
             display: flex;
             gap: 8px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
         }
 
         .tab-btn {
@@ -243,9 +254,42 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             background: rgba(57, 208, 255, 0.1);
         }
 
+        .report-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-report {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 7px 14px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-report:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(57, 208, 255, 0.05);
+        }
+
+        .btn-report:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: var(--border-color);
+            color: var(--text-muted);
+        }
+
         .tab-content {
             display: none;
-            margin-top: 16px;
         }
 
         .tab-content.active {
@@ -366,7 +410,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     <div class="brand-desc">Fast Frontend JS Static Reconnaissance & Secret/Endpoint Hunter</div>
                 </div>
             </div>
-            <div>
+            <div class="header-actions">
                 <span class="badge-zero-dep">⚡ Zero-Dep Architecture</span>
             </div>
         </header>
@@ -374,7 +418,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="scan-box">
             <form id="scanForm" onsubmit="startScan(event)">
                 <div class="input-group">
-                    <input type="text" id="targetUrl" class="input-url" placeholder="Enter target URL (e.g. https://example.com or http://localhost:8080)" required autocomplete="off" />
+                    <input type="text" id="targetUrl" class="input-url" placeholder="Enter target URL (e.g. https://demo.owasp-juice.shop/ or http://localhost:3000)" required autocomplete="off" />
                     <button type="submit" id="btnScan" class="btn-scan">
                         <span id="btnText">Launch Recon</span>
                         <span id="btnSpinner" class="spinner" style="display: none;"></span>
@@ -412,70 +456,84 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
         </div>
 
-        <div class="tabs-container">
+        <div class="toolbar-row">
             <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('secrets')">🔑 Exposed Secrets (<span id="countSecrets">0</span>)</button>
-                <button class="tab-btn" onclick="switchTab('endpoints')">🌐 API Endpoints (<span id="countEndpoints">0</span>)</button>
-                <button class="tab-btn" onclick="switchTab('hosts')">🏢 Internal Hosts (<span id="countHosts">0</span>)</button>
-                <button class="tab-btn" onclick="switchTab('files')">📦 Analyzed Files (<span id="countFiles">0</span>)</button>
+                <button class="tab-btn active" onclick="switchTab('secrets', this)">🔑 Exposed Secrets (<span id="countSecrets">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('endpoints', this)">🌐 API Endpoints (<span id="countEndpoints">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('hosts', this)">🏢 Internal Hosts (<span id="countHosts">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('files', this)">📦 Analyzed Files (<span id="countFiles">0</span>)</button>
             </div>
 
-            <!-- TAB: SECRETS -->
-            <div id="tab-secrets" class="tab-content active">
-                <div class="card">
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 180px;">Type</th>
-                                    <th>Detected Value</th>
-                                    <th>Source Location</th>
-                                    <th>Context Snippet</th>
-                                </tr>
-                            </thead>
-                            <tbody id="secretsTableBody">
-                                <tr><td colspan="4" class="empty-state">No scan executed yet. Enter a URL above to start.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="report-actions">
+                <button id="btnExportMd" class="btn-report" onclick="downloadMarkdown()" disabled>
+                    <span>📄 Export Markdown</span>
+                </button>
+                <button id="btnExportJson" class="btn-report" onclick="downloadJSON()" disabled>
+                    <span>💾 Export JSON</span>
+                </button>
+                <button id="btnExportTxt" class="btn-report" onclick="downloadEndpointsTxt()" disabled>
+                    <span>📝 Endpoints .txt</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB: SECRETS -->
+        <div id="tab-secrets" class="tab-content active">
+            <div class="card">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 220px;">Type</th>
+                                <th>Detected Value</th>
+                                <th>Source Location</th>
+                                <th>Context Snippet</th>
+                            </tr>
+                        </thead>
+                        <tbody id="secretsTableBody">
+                            <tr><td colspan="4" class="empty-state">No scan executed yet. Enter a URL above to start.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </div>
 
-            <!-- TAB: ENDPOINTS -->
-            <div id="tab-endpoints" class="tab-content">
-                <div class="card">
-                    <div class="list-container" id="endpointsList">
-                        <div class="empty-state">No endpoints discovered yet.</div>
-                    </div>
+        <!-- TAB: ENDPOINTS -->
+        <div id="tab-endpoints" class="tab-content">
+            <div class="card">
+                <div class="list-container" id="endpointsList">
+                    <div class="empty-state">No endpoints discovered yet.</div>
                 </div>
             </div>
+        </div>
 
-            <!-- TAB: HOSTS -->
-            <div id="tab-hosts" class="tab-content">
-                <div class="card">
-                    <div class="list-container" id="hostsList">
-                        <div class="empty-state">No internal / staging hosts found.</div>
-                    </div>
+        <!-- TAB: HOSTS -->
+        <div id="tab-hosts" class="tab-content">
+            <div class="card">
+                <div class="list-container" id="hostsList">
+                    <div class="empty-state">No internal / staging hosts found.</div>
                 </div>
             </div>
+        </div>
 
-            <!-- TAB: FILES -->
-            <div id="tab-files" class="tab-content">
-                <div class="card">
-                    <div class="list-container" id="filesList">
-                        <div class="empty-state">No JS bundles analyzed yet.</div>
-                    </div>
+        <!-- TAB: FILES -->
+        <div id="tab-files" class="tab-content">
+            <div class="card">
+                <div class="list-container" id="filesList">
+                    <div class="empty-state">No JS bundles analyzed yet.</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        function switchTab(tabName) {
+        let currentScanResult = null;
+
+        function switchTab(tabName, element) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
-            event.target.classList.add('active');
+            element.classList.add('active');
             document.getElementById('tab-' + tabName).classList.add('active');
         }
 
@@ -510,7 +568,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 if (data.error) {
                     alert('Scan Error: ' + data.error);
                 } else {
+                    currentScanResult = data;
                     renderResults(data);
+                    enableReportButtons(true);
                 }
             } catch (err) {
                 alert('Request failed: ' + err.message);
@@ -519,6 +579,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 btnText.innerText = "Launch Recon";
                 btnSpinner.style.display = "none";
             }
+        }
+
+        function enableReportButtons(enabled) {
+            document.getElementById('btnExportMd').disabled = !enabled;
+            document.getElementById('btnExportJson').disabled = !enabled;
+            document.getElementById('btnExportTxt').disabled = !enabled;
         }
 
         function renderResults(data) {
@@ -588,6 +654,65 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     </div>
                 `).join('');
             }
+        }
+
+        function downloadFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadJSON() {
+            if (!currentScanResult) return;
+            const targetDomain = getSafeFilename(currentScanResult.target || 'target');
+            downloadFile(`jshound_${targetDomain}.json`, JSON.stringify(currentScanResult, null, 2), 'application/json');
+        }
+
+        function downloadEndpointsTxt() {
+            if (!currentScanResult) return;
+            const targetDomain = getSafeFilename(currentScanResult.target || 'target');
+            const content = (currentScanResult.endpoints || []).join('\\n');
+            downloadFile(`endpoints_${targetDomain}.txt`, content, 'text/plain');
+        }
+
+        function downloadMarkdown() {
+            if (!currentScanResult) return;
+            const data = currentScanResult;
+            const targetDomain = getSafeFilename(data.target || 'target');
+
+            let md = `# 🛡️ JSHound Security Reconnaissance Report\\n\\n`;
+            md += `**Target URL:** \`${data.target}\`  \\n`;
+            md += `**Analyzed Files:** \`${(data.files_analyzed || []).length}\`  \\n`;
+            md += `**Source Maps Extracted:** \`${(data.sourcemaps_unpacked || []).length}\`  \\n\\n`;
+            md += `---\\n\\n## 1. 🔑 Exposed Secrets & API Tokens (${(data.secrets || []).length})\\n\\n`;
+            md += `| Type | Value | Source File |\\n| :--- | :--- | :--- |\\n`;
+            
+            (data.secrets || []).forEach(s => {
+                md += `| **${s.type}** | \`${s.value}\` | \`${s.source}\` |\\n`;
+            });
+
+            md += `\\n---\\n\\n## 2. 🏢 Internal & Staging Hosts (${(data.internal_hosts || []).length})\\n\\n`;
+            (data.internal_hosts || []).forEach(h => {
+                md += `- \`${h}\`\\n`;
+            });
+
+            md += `\\n---\\n\\n## 3. 🌐 Discovered Endpoints & Paths (${(data.endpoints || []).length})\\n\\n\`\`\`text\\n`;
+            (data.endpoints || []).forEach(ep => {
+                md += `${ep}\\n`;
+            });
+            md += `\`\`\`\\n`;
+
+            downloadFile(`recon_report_${targetDomain}.md`, md, 'text/markdown');
+        }
+
+        function getSafeFilename(url) {
+            return url.replace(/https?:\\/\\//g, '').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
         }
 
         function escapeHtml(text) {
