@@ -1,6 +1,6 @@
 import re
-import math
 from typing import Dict, List, Set, Any, Optional
+import math
 
 def calculate_shannon_entropy(data: str) -> float:
     """Calculates the Shannon entropy of a string."""
@@ -65,12 +65,11 @@ class JSAnalyzer:
         "postMessage Listener (No Origin Validation)": r'addEventListener\s*\(\s*[\'"`]message[\'"`]\s*,\s*(?:function|\([^)]*\)\s*=>)[^{]*\{(?![^}]*(?:origin\s*===|\.origin\b))'
     }
 
-    # Feature 2: GraphQL Query & Mutation Patterns
-    GRAPHQL_REGEX = re.compile(
-        r'(?:gql|graphql)\s*`([^`]+)`|'
-        r'[\'"`]((?:query|mutation|subscription)\s+[A-Za-z0-9_]+\s*(?:\([^)]*\))?\s*\{[^\'"`]+\})[\'"`]',
-        re.IGNORECASE | re.DOTALL
-    )
+    # Feature 2: GraphQL Query & Mutation Patterns (Strict document matching)
+    GRAPHQL_REGEX = [
+        re.compile(r'(?:gql|graphql)\s*`([^`]+)`', re.IGNORECASE | re.DOTALL),
+        re.compile(r'[\'"`]((?:query|mutation|subscription)\s+[A-Za-z0-9_]*\s*(?:\([^)]*\))?\s*\{[^\'"`]+\})[\'"`]', re.DOTALL)
+    ]
 
     # Feature 3: API Parameter & Request Blueprint Patterns
     API_CALL_REGEX = re.compile(
@@ -126,15 +125,13 @@ class JSAnalyzer:
                     "entropy": round(calculate_shannon_entropy(matched_val), 2)
                 })
 
-        # Feature 4: Shannon Entropy Secret Hunter (Detect high-randomness tokens)
+        # Feature 4: Shannon Entropy Secret Hunter
         for token_match in re.finditer(r'[\'"`]([a-zA-Z0-9_\-\.]{20,80})[\'"`]', content):
             token_val = token_match.group(1)
-            # Skip if already captured by regex or looks like standard words/paths/JWT
             if token_val in known_secret_values or token_val.startswith("http") or "/" in token_val or token_val.startswith("ey"):
                 continue
             
             ent = calculate_shannon_entropy(token_val)
-            # High entropy heuristic (> min_entropy, mix of uppercase/lowercase/numbers)
             has_upper = any(c.isupper() for c in token_val)
             has_lower = any(c.islower() for c in token_val)
             has_digit = any(c.isdigit() for c in token_val)
@@ -179,15 +176,17 @@ class JSAnalyzer:
                 })
 
         # Feature 2: GraphQL Queries & Mutations
-        for match in self.GRAPHQL_REGEX.finditer(content):
-            gql_body = match.group(1) or match.group(2)
-            if gql_body:
-                clean_gql = re.sub(r'\s+', ' ', gql_body).strip()
-                if len(clean_gql) > 15:
-                    results["graphql_queries"].append({
-                        "query": clean_gql,
-                        "source": source_url
-                    })
+        for gql_re in self.GRAPHQL_REGEX:
+            for match in gql_re.finditer(content):
+                gql_body = match.group(1)
+                if gql_body:
+                    clean_gql = re.sub(r'\s+', ' ', gql_body).strip()
+                    # Filter out minified JS artifacts (must contain open and close brackets)
+                    if len(clean_gql) > 15 and "{" in clean_gql and "}" in clean_gql:
+                        results["graphql_queries"].append({
+                            "query": clean_gql,
+                            "source": source_url
+                        })
 
         # Feature 3: API Blueprints & Request Schemas
         for match in self.API_CALL_REGEX.finditer(content):
